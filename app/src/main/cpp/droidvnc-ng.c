@@ -24,8 +24,8 @@
 #include <time.h>
 #include <errno.h>
 #include "rfb/rfb.h"
-#include <stdio.h>
-#include <stdlib.h>
+//#include <stdio.h>
+//#include <stdlib.h>
 #include "types.h"
 
 #define TAG "droidvnc-ng (native)"
@@ -155,17 +155,11 @@ JNIEXPORT jboolean JNICALL Java_net_christianbeier_droidvnc_1ng_MainService_vncS
     return JNI_TRUE;
 }
 
-
 JNIEXPORT jboolean JNICALL
 Java_net_christianbeier_droidvnc_1ng_MainService_vncStartServer(JNIEnv *env, jobject thiz,
                                                                 jint width, jint height, jint port,
                                                                 jstring desktopname,
-                                                                jstring password,
-                                                                jbyteArray rawData) {
-
-    jboolean rawCopy = JNI_FALSE;
-    jbyte *const raw_buff = (*env)->GetByteArrayElements(env, rawData, &rawCopy);
-
+                                                                jstring password) {
     int argc = 0;
 
     if (theScreen)
@@ -177,8 +171,8 @@ Java_net_christianbeier_droidvnc_1ng_MainService_vncStartServer(JNIEnv *env, job
         return JNI_FALSE;
     }
 
-//    theScreen->frameBuffer=(char*)calloc(width * height * 4, 1);
-    theScreen->frameBuffer = (char *) raw_buff;
+    theScreen->frameBuffer = (char *) calloc(width * height * 4, 1);
+
     if (!theScreen->frameBuffer) {
         __android_log_print(ANDROID_LOG_ERROR, TAG,
                             "vncStartServer: failed allocating framebuffer");

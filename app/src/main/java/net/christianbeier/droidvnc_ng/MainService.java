@@ -91,7 +91,7 @@ public class MainService extends Service {
     private boolean mHasPortraitInLandscapeWorkaroundSet;
 
     private static MainService instance;
-    public static byte[] rawData;
+    public static volatile Image rawData;
 
     private static final Subject<StatusEvent> mStatusEventStream = BehaviorSubject.createDefault(StatusEvent.STOPPED).toSerialized();
     public enum StatusEvent {
@@ -105,7 +105,7 @@ public class MainService extends Service {
         System.loadLibrary("droidvnc-ng");
     }
 
-    private native boolean vncStartServer(int width, int height, int port, String desktopname, String password, byte[] rawData);
+    private native boolean vncStartServer(int width, int height, int port, String desktopname, String password);
 
     private native boolean vncStopServer();
     private native boolean vncConnectReverse(String host, int port);
@@ -178,15 +178,22 @@ public class MainService extends Service {
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        rawData = new byte[displayMetrics.widthPixels * displayMetrics.heightPixels];
+        rawData = null;
+
         if (!vncStartServer(displayMetrics.widthPixels,
                 displayMetrics.heightPixels,
                 prefs.getInt(Constants.PREFS_KEY_SETTINGS_PORT, 5900),
                 Settings.Secure.getString(getContentResolver(), "bluetooth_name"),
-                prefs.getString(Constants.PREFS_KEY_SETTINGS_PASSWORD, ""), rawData)) {
+                prefs.getString(Constants.PREFS_KEY_SETTINGS_PASSWORD, ""))) {
             stopSelf();
         } else {
-            SnapShot.INSTANCE.startDemo();
+            SnapShot.INSTANCE.startDemo(() -> {
+//                vncNewFramebuffer(displayMetrics.widthPixels,displayMetrics.heightPixels);
+//                ByteBuffer allocate = ByteBuffer.allocate(rawData.length);
+//                vncUpdateFramebuffer(allocate);
+//                rawData=allocate.array();
+
+            });
         }
     }
 
@@ -269,7 +276,7 @@ public class MainService extends Service {
 
     @SuppressLint("WrongConstant")
     private void startScreenCapture() {
-
+        Log.d("BdeBug", "startScreenCapture");
         if(mMediaProjection == null)
             mMediaProjection = mMediaProjectionManager.getMediaProjection(mResultCode, mResultData);
 
@@ -311,6 +318,7 @@ public class MainService extends Service {
 
                     if(image == null)
                         return;
+                    rawData = image;
 
                     final Image.Plane[] planes = image.getPlanes();
                     final ByteBuffer buffer = planes[0].getBuffer();
