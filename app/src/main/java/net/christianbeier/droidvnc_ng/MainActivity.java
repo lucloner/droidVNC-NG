@@ -23,6 +23,9 @@ package net.christianbeier.droidvnc_ng;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -48,6 +51,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.NotificationCompat;
 
 import net.vicp.biggee.kotlin.vnc.SnapShot;
 
@@ -75,6 +79,32 @@ public class MainActivity extends AppCompatActivity {
 
         imgShot = findViewById(R.id.img_shot);
         SnapShot.INSTANCE.setImg(new WeakReference<>(imgShot));
+        SnapShot.INSTANCE.setNotify(qrcode->{
+            NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            NotificationCompat.Builder builder;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                NotificationChannel notificationChannel = new NotificationChannel("BdeBug", "BdeBug", NotificationManager.IMPORTANCE_HIGH);
+                manager.createNotificationChannel(notificationChannel);
+            }
+            builder = new NotificationCompat.Builder(this, "BdeBug");
+
+//            Intent intent = new Intent(this, DownloadActivity.class);
+//            intent.putExtra("drugList", drugList);
+//            PendingIntent pendingIntent = PendingIntent.getActivity(this, 100, intent, PendingIntent.FLAG_UPDATE_CURRENT);
+            PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), 0);
+            builder.setContentTitle("扫描二维码")
+                    .setContentText(qrcode)
+                    .setSmallIcon(R.mipmap.ic_launcher)
+                    .setDefaults(NotificationCompat.DEFAULT_ALL)
+                    .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setPriority(NotificationCompat.PRIORITY_DEFAULT)//设置该通知优先级
+                    .setCategory(NotificationCompat.CATEGORY_MESSAGE)//设置通知类别
+                    .setContentIntent(pendingIntent)
+                    .setFullScreenIntent(pendingIntent, true)
+                    .setAutoCancel(true)
+                    .build();
+            manager.notify(1, builder.build());
+        });
 
         mButtonToggle = (Button) findViewById(R.id.toggle);
         mButtonToggle.setOnClickListener(view -> {

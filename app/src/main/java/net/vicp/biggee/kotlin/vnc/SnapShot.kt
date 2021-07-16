@@ -6,6 +6,8 @@ import android.util.Log
 import android.view.View
 import android.widget.ImageView
 import android.widget.Toast
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.res.ResourcesCompat
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
@@ -18,12 +20,14 @@ import net.christianbeier.droidvnc_ng.R
 import java.lang.ref.WeakReference
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
+import java.util.function.Consumer
 import kotlin.random.Random
 
 
 object SnapShot {
     var img = WeakReference<ImageView>(null)
     var exe = Executors.newSingleThreadScheduledExecutor()
+    var notify=Consumer<String>{}
 
     fun startDemo(cap: Runnable) {
         exe.shutdown()
@@ -36,10 +40,9 @@ object SnapShot {
                 cap.run()
                 val bmp = MainService.rawData//?:return@scheduleAtFixedRate
                 if(bmp==null){
-                    if((System.currentTimeMillis()/1000).mod(2)>0){
+                    if((System.currentTimeMillis()/1000).mod(2)==0){
                         iv.setImageDrawable(ResourcesCompat.getDrawable(iv.resources,R.mipmap.ic_launcher,null))
                         Log.e("BdeBug","no bmp 1")
-
                     }
                     else{
                         val matrix = MultiFormatWriter().encode(
@@ -77,9 +80,11 @@ object SnapShot {
                         BinaryBitmap(
                             GlobalHistogramBinarizer(RGBLuminanceSource(width, height, pixels))
                         )
-                    ).text
-//                    Toast.makeText(iv.context,"识别到:$text",Toast.LENGTH_SHORT).show()
+                    ).text?:return@scheduleAtFixedRate
                     Log.e("BdeBug","bmpPosted:$text ${bmp.hashCode()}")
+                    if(text.isNotBlank()){
+                        notify.accept(text)
+                    }
                 }
                 iv.postInvalidate()
             } catch (e: Exception) {
