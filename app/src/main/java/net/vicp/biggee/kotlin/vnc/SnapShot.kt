@@ -5,9 +5,6 @@ import android.graphics.Color
 import android.util.Log
 import android.view.View
 import android.widget.ImageView
-import android.widget.Toast
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.res.ResourcesCompat
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.BinaryBitmap
@@ -38,7 +35,7 @@ object SnapShot {
                 val iv = img.get() ?: return@scheduleAtFixedRate
                 iv.visibility = View.VISIBLE
                 cap.run()
-                val bmp = MainService.rawData//?:return@scheduleAtFixedRate
+                val bmp = MainService.rawData ?: return@scheduleAtFixedRate
                 if(bmp==null){
                     if((System.currentTimeMillis()/1000).mod(2)==0){
                         iv.setImageDrawable(ResourcesCompat.getDrawable(iv.resources,R.mipmap.ic_launcher,null))

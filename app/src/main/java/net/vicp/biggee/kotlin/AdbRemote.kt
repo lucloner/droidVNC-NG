@@ -1,6 +1,7 @@
 package net.vicp.biggee.kotlin
 
-object AdbRemote {
+object
+AdbRemote {
     val TAG = "adbRemote"
     var done = false
     val port = 5555

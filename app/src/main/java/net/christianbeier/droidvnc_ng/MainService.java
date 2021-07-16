@@ -345,16 +345,6 @@ public class MainService extends Service {
                         vncNewFramebuffer(metrics.widthPixels, metrics.heightPixels);
 
                     vncUpdateFramebuffer(croppedBuffer);
-//                    if(rawData==null){
-//                        rawData=dest;
-//                        Log.e("BdeBug","put bmp 1");
-//                    }
-//                    else {
-//                        rawData=croppedDest;
-//                        Log.e("BdeBug","put bmp 2");
-//                    }
-
-//                    rawData = croppedDest.copy(croppedDest.getConfig(),false);
 
                     image.close();
                 }
@@ -399,8 +389,8 @@ public class MainService extends Service {
                 int width = image.getWidth();
                 int height = image.getHeight();
                 //TODO:修改切割参数
-                int cropWidth = 2;
-                int cropHeight = 4;
+                int cropWidth = 1;
+                int cropHeight = 1;
                 Bitmap bmp = Bitmap.createBitmap(width / cropWidth, height / cropHeight, Bitmap.Config.ARGB_8888);
                 int offset = 0;
                 for (int i = 0; i < height; ++i) {
