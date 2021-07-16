@@ -24,5 +24,5 @@ object AdbRemote {
         done = true
     }
 
-    fun stop() = { interrupt = true }
+    fun stop() = run { interrupt = true }
 }

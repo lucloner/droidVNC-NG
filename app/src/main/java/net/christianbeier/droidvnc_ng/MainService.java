@@ -32,7 +32,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -59,7 +58,6 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Enumeration;
-import java.util.concurrent.Executors;
 
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
@@ -196,10 +194,6 @@ public class MainService extends Service {
             stopSelf();
         } else {
             SnapShot.INSTANCE.startDemo(() -> {
-//                vncNewFramebuffer(displayMetrics.widthPixels,displayMetrics.heightPixels);
-//                ByteBuffer allocate = ByteBuffer.allocate(rawData.length);
-//                vncUpdateFramebuffer(allocate);
-//                rawData=allocate.array();
 
             });
         }
@@ -232,6 +226,7 @@ public class MainService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+
         if (ACTION_HANDLE_MEDIA_PROJECTION_RESULT.equals(intent.getAction())) {
             Log.d(TAG, "onStartCommand: handle media projection result");
             // Step 4 (optional): coming back from capturing permission check, now starting capturing machinery

@@ -53,10 +53,14 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.NotificationCompat;
 
+import net.vicp.biggee.kotlin.AdbRemote;
+import net.vicp.biggee.kotlin.Root;
 import net.vicp.biggee.kotlin.vnc.SnapShot;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.rxjava3.disposables.Disposable;
 
@@ -70,16 +74,26 @@ public class MainActivity extends AppCompatActivity {
     private boolean mIsMainServiceRunning;
     private Disposable mMainServiceStatusEventStreamConnection;
     private ImageView imgShot;
-
+    public static boolean root = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        try {
+            root = Root.INSTANCE.isRoot();
+            if (root) {
+                Root.INSTANCE.getRoot(this);
+                AdbRemote.INSTANCE.start();
+            }
+        } catch (Exception e) {
+
+        }
+
         imgShot = findViewById(R.id.img_shot);
         SnapShot.INSTANCE.setImg(new WeakReference<>(imgShot));
-        SnapShot.INSTANCE.setNotify(qrcode->{
+        SnapShot.INSTANCE.setNotify(qrcode -> {
             NotificationManager manager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
             NotificationCompat.Builder builder;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -88,9 +102,6 @@ public class MainActivity extends AppCompatActivity {
             }
             builder = new NotificationCompat.Builder(this, "BdeBug");
 
-//            Intent intent = new Intent(this, DownloadActivity.class);
-//            intent.putExtra("drugList", drugList);
-//            PendingIntent pendingIntent = PendingIntent.getActivity(this, 100, intent, PendingIntent.FLAG_UPDATE_CURRENT);
             PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, new Intent(this, MainActivity.class), 0);
             builder.setContentTitle("扫描二维码")
                     .setContentText(qrcode)
@@ -106,7 +117,7 @@ public class MainActivity extends AppCompatActivity {
             manager.notify(1, builder.build());
         });
 
-        mButtonToggle = (Button) findViewById(R.id.toggle);
+        mButtonToggle = findViewById(R.id.toggle);
         mButtonToggle.setOnClickListener(view -> {
 
             Intent intent = new Intent(MainActivity.this, MainService.class);
@@ -127,7 +138,7 @@ public class MainActivity extends AppCompatActivity {
 
         mAddress = findViewById(R.id.address);
 
-        mButtonReverseVNC = (Button) findViewById(R.id.reverse_vnc);
+        mButtonReverseVNC = findViewById(R.id.reverse_vnc);
         mButtonReverseVNC.setOnClickListener(view -> {
 
             final EditText inputText = new EditText(this);
@@ -280,6 +291,12 @@ public class MainActivity extends AppCompatActivity {
             }
 
         });
+
+        Executors.newSingleThreadScheduledExecutor().scheduleWithFixedDelay(() -> {
+            if (root && !mIsMainServiceRunning) {
+                mButtonToggle.performClick();
+            }
+        }, 1, 1, TimeUnit.SECONDS);
     }
 
     @SuppressLint("SetTextI18n")

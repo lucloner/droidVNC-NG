@@ -25,6 +25,7 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.util.Log;
 
@@ -40,7 +41,7 @@ public class InputRequestActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if(!InputService.isEnabled()) {
+        if (!InputService.isEnabled() && !MainActivity.root && !PreferenceManager.getDefaultSharedPreferences(this).getBoolean(Constants.PREFS_KEY_SETTINGS_START_ON_BOOT, false)) {
             new AlertDialog.Builder(this)
                     .setCancelable(false)
                     .setTitle(R.string.input_a11y_title)
