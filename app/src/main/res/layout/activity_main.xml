@@ -18,7 +18,8 @@
             android:layout_width="match_parent"
             android:layout_height="100dp"
             android:contentDescription="Demo"
-            android:scaleType="fitCenter"
+            android:layout_gravity="start"
+            android:scaleType="fitStart"
             android:visibility="gone" />
 
         <TextView

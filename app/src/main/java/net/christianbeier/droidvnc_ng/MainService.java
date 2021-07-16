@@ -396,16 +396,23 @@ public class MainService extends Service {
 
 //            Executors.newWorkStealingPool().submit(() -> {
             if (rawData == null) {
-                Bitmap bmp = Bitmap.createBitmap(image.getWidth(), image.getHeight(), Bitmap.Config.ARGB_8888);
+                int width = image.getWidth();
+                int height = image.getHeight();
+                //TODO:修改切割参数
+                int cropWidth = 2;
+                int cropHeight = 4;
+                Bitmap bmp = Bitmap.createBitmap(width / cropWidth, height / cropHeight, Bitmap.Config.ARGB_8888);
                 int offset = 0;
-                for (int i = 0; i < image.getHeight(); ++i) {
-                    for (int j = 0; j < image.getWidth(); ++j) {
-                        int pixel = 0;
-                        pixel |= (buffer.get(offset) & 0xff) << 16;     // R
-                        pixel |= (buffer.get(offset + 1) & 0xff) << 8;  // G
-                        pixel |= (buffer.get(offset + 2) & 0xff);       // B
-                        pixel |= (buffer.get(offset + 3) & 0xff) << 24; // A
-                        bmp.setPixel(j, i, pixel);
+                for (int i = 0; i < height; ++i) {
+                    for (int j = 0; j < width; ++j) {
+                        if (i < height / cropHeight && j < width / cropWidth) {
+                            int pixel = 0;
+                            pixel |= (buffer.get(offset) & 0xff) << 16;     // R
+                            pixel |= (buffer.get(offset + 1) & 0xff) << 8;  // G
+                            pixel |= (buffer.get(offset + 2) & 0xff);       // B
+                            pixel |= (buffer.get(offset + 3) & 0xff) << 24; // A
+                            bmp.setPixel(j, i, pixel);
+                        }
                         offset += pixelStride;
                     }
                     offset += rowPadding;
