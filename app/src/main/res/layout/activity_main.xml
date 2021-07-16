@@ -18,7 +18,7 @@
             android:layout_width="match_parent"
             android:layout_height="100dp"
             android:contentDescription="Demo"
-            android:src="@mipmap/ic_launcher"
+            android:scaleType="fitCenter"
             android:visibility="gone" />
 
         <TextView

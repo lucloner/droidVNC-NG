@@ -32,6 +32,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
@@ -58,6 +59,7 @@ import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Enumeration;
+import java.util.concurrent.Executors;
 
 import io.reactivex.rxjava3.core.Observable;
 import io.reactivex.rxjava3.subjects.BehaviorSubject;
@@ -91,9 +93,10 @@ public class MainService extends Service {
     private boolean mHasPortraitInLandscapeWorkaroundSet;
 
     private static MainService instance;
-    public static volatile Image rawData;
+    public static Bitmap rawData = null;
 
     private static final Subject<StatusEvent> mStatusEventStream = BehaviorSubject.createDefault(StatusEvent.STOPPED).toSerialized();
+
     public enum StatusEvent {
         STARTED,
         STOPPED,
@@ -108,10 +111,15 @@ public class MainService extends Service {
     private native boolean vncStartServer(int width, int height, int port, String desktopname, String password);
 
     private native boolean vncStopServer();
+
     private native boolean vncConnectReverse(String host, int port);
+
     private native boolean vncNewFramebuffer(int width, int height);
+
     private native boolean vncUpdateFramebuffer(ByteBuffer buf);
+
     private native int vncGetFramebufferWidth();
+
     private native int vncGetFramebufferHeight();
 
 
@@ -178,7 +186,7 @@ public class MainService extends Service {
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
-        rawData = null;
+//        rawData = null;
 
         if (!vncStartServer(displayMetrics.widthPixels,
                 displayMetrics.heightPixels,
@@ -222,11 +230,9 @@ public class MainService extends Service {
     }
 
 
-
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId)
-    {
-        if(ACTION_HANDLE_MEDIA_PROJECTION_RESULT.equals(intent.getAction())) {
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        if (ACTION_HANDLE_MEDIA_PROJECTION_RESULT.equals(intent.getAction())) {
             Log.d(TAG, "onStartCommand: handle media projection result");
             // Step 4 (optional): coming back from capturing permission check, now starting capturing machinery
             mResultCode = intent.getIntExtra(EXTRA_MEDIA_PROJECTION_RESULT_CODE, 0);
@@ -234,7 +240,7 @@ public class MainService extends Service {
             startScreenCapture();
         }
 
-        if(ACTION_HANDLE_WRITE_STORAGE_RESULT.equals(intent.getAction())) {
+        if (ACTION_HANDLE_WRITE_STORAGE_RESULT.equals(intent.getAction())) {
             Log.d(TAG, "onStartCommand: handle write storage result");
             // Step 3: coming back from write storage permission check, start capturing
             // or ask for ask for capturing permission first (then going in step 4)
@@ -249,7 +255,7 @@ public class MainService extends Service {
             }
         }
 
-        if(ACTION_HANDLE_INPUT_RESULT.equals(intent.getAction())) {
+        if (ACTION_HANDLE_INPUT_RESULT.equals(intent.getAction())) {
             Log.d(TAG, "onStartCommand: handle input result");
             // Step 2: coming back from input permission check, now ask for write storage permission
             Intent writeStorageRequestIntent = new Intent(this, WriteStorageRequestActivity.class);
@@ -257,7 +263,7 @@ public class MainService extends Service {
             startActivity(writeStorageRequestIntent);
         }
 
-        if(ACTION_START.equals(intent.getAction())) {
+        if (ACTION_START.equals(intent.getAction())) {
             Log.d(TAG, "onStartCommand: start");
             // Step 1: check input permission
             Intent inputRequestIntent = new Intent(this, InputRequestActivity.class);
@@ -265,7 +271,7 @@ public class MainService extends Service {
             startActivity(inputRequestIntent);
         }
 
-        if(ACTION_STOP.equals(intent.getAction())) {
+        if (ACTION_STOP.equals(intent.getAction())) {
             Log.d(TAG, "onStartCommand: stop");
             stopSelf();
         }
@@ -277,7 +283,7 @@ public class MainService extends Service {
     @SuppressLint("WrongConstant")
     private void startScreenCapture() {
         Log.d("BdeBug", "startScreenCapture");
-        if(mMediaProjection == null)
+        if (mMediaProjection == null)
             mMediaProjection = mMediaProjectionManager.getMediaProjection(mResultCode, mResultData);
 
         if (mMediaProjection == null) {
@@ -295,19 +301,19 @@ public class MainService extends Service {
         wm.getDefaultDisplay().getRealMetrics(metrics);
 
         // only set this by detecting quirky hardware if the user has not set manually
-        if(!mHasPortraitInLandscapeWorkaroundSet && Build.FINGERPRINT.contains("rk3288")  && metrics.widthPixels > 800) {
+        if (!mHasPortraitInLandscapeWorkaroundSet && Build.FINGERPRINT.contains("rk3288") && metrics.widthPixels > 800) {
             Log.w(TAG, "detected >10in rk3288 applying workaround for portrait-in-landscape quirk");
             mHasPortraitInLandscapeWorkaroundApplied = true;
         }
 
         // use workaround if flag set and in actual portrait mode
-        if(mHasPortraitInLandscapeWorkaroundApplied && metrics.widthPixels < metrics.heightPixels) {
+        if (mHasPortraitInLandscapeWorkaroundApplied && metrics.widthPixels < metrics.heightPixels) {
 
-            final float portraitInsideLandscapeScaleFactor = (float)metrics.widthPixels/metrics.heightPixels;
+            final float portraitInsideLandscapeScaleFactor = (float) metrics.widthPixels / metrics.heightPixels;
 
             // width and height are swapped here
-            final int quirkyLandscapeWidth = (int)((float)metrics.heightPixels/portraitInsideLandscapeScaleFactor);
-            final int quirkyLandscapeHeight = (int)((float)metrics.widthPixels/portraitInsideLandscapeScaleFactor);
+            final int quirkyLandscapeWidth = (int) ((float) metrics.heightPixels / portraitInsideLandscapeScaleFactor);
+            final int quirkyLandscapeHeight = (int) ((float) metrics.widthPixels / portraitInsideLandscapeScaleFactor);
 
             mImageReader = ImageReader.newInstance(quirkyLandscapeWidth, quirkyLandscapeHeight, PixelFormat.RGBA_8888, 2);
             mImageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
@@ -316,9 +322,8 @@ public class MainService extends Service {
                     Log.d(TAG, "image available");
                     Image image = imageReader.acquireLatestImage();
 
-                    if(image == null)
+                    if (image == null)
                         return;
-                    rawData = image;
 
                     final Image.Plane[] planes = image.getPlanes();
                     final ByteBuffer buffer = planes[0].getBuffer();
@@ -328,23 +333,33 @@ public class MainService extends Service {
                     int w = quirkyLandscapeWidth + rowPadding / pixelStride;
 
                     // create destination Bitmap
-                    Bitmap dest =  Bitmap.createBitmap(w, quirkyLandscapeHeight, Bitmap.Config.ARGB_8888);
+                    Bitmap dest = Bitmap.createBitmap(w, quirkyLandscapeHeight, Bitmap.Config.ARGB_8888);
 
                     // copy landscape buffer to dest bitmap
                     buffer.rewind();
                     dest.copyPixelsFromBuffer(buffer);
 
                     // get the portrait portion that's in the center of the landscape bitmap
-                    Bitmap croppedDest = Bitmap.createBitmap(dest, quirkyLandscapeWidth/2 - metrics.widthPixels/2, 0, metrics.widthPixels, metrics.heightPixels);
+                    Bitmap croppedDest = Bitmap.createBitmap(dest, quirkyLandscapeWidth / 2 - metrics.widthPixels / 2, 0, metrics.widthPixels, metrics.heightPixels);
 
                     ByteBuffer croppedBuffer = ByteBuffer.allocateDirect(metrics.widthPixels * metrics.heightPixels * 4);
                     croppedDest.copyPixelsToBuffer(croppedBuffer);
 
                     // if needed, setup a new VNC framebuffer that matches the new buffer's dimensions
-                    if(metrics.widthPixels != vncGetFramebufferWidth() || metrics.heightPixels != vncGetFramebufferHeight())
+                    if (metrics.widthPixels != vncGetFramebufferWidth() || metrics.heightPixels != vncGetFramebufferHeight())
                         vncNewFramebuffer(metrics.widthPixels, metrics.heightPixels);
 
                     vncUpdateFramebuffer(croppedBuffer);
+//                    if(rawData==null){
+//                        rawData=dest;
+//                        Log.e("BdeBug","put bmp 1");
+//                    }
+//                    else {
+//                        rawData=croppedDest;
+//                        Log.e("BdeBug","put bmp 2");
+//                    }
+
+//                    rawData = croppedDest.copy(croppedDest.getConfig(),false);
 
                     image.close();
                 }
@@ -362,32 +377,48 @@ public class MainService extends Service {
             This is the default behaviour.
          */
         mImageReader = ImageReader.newInstance(metrics.widthPixels, metrics.heightPixels, PixelFormat.RGBA_8888, 2);
-        mImageReader.setOnImageAvailableListener(new ImageReader.OnImageAvailableListener() {
-            @Override
-            public void onImageAvailable(ImageReader imageReader) {
-                Log.d(TAG, "image available");
-                Image image = imageReader.acquireLatestImage();
+        mImageReader.setOnImageAvailableListener(imageReader -> {
+            Log.d(TAG, "image available");
+            Image image = imageReader.acquireLatestImage();
 
-                if(image == null)
-                    return;
+            if (image == null)
+                return;
 
-                final Image.Plane[] planes = image.getPlanes();
-                final ByteBuffer buffer = planes[0].getBuffer();
-                int pixelStride = planes[0].getPixelStride();
-                int rowStride = planes[0].getRowStride();
-                int rowPadding = rowStride - pixelStride * metrics.widthPixels;
-                int w = metrics.widthPixels + rowPadding / pixelStride;
+            final Image.Plane[] planes = image.getPlanes();
+            final ByteBuffer buffer = planes[0].getBuffer();
+            int pixelStride = planes[0].getPixelStride();
+            int rowStride = planes[0].getRowStride();
+            int rowPadding = rowStride - pixelStride * metrics.widthPixels;
+            int w = metrics.widthPixels + rowPadding / pixelStride;
 
-                // if needed, setup a new VNC framebuffer that matches the image plane's parameters
-                if(w != vncGetFramebufferWidth() || metrics.heightPixels != vncGetFramebufferHeight())
-                     vncNewFramebuffer(w, metrics.heightPixels);
+            // if needed, setup a new VNC framebuffer that matches the image plane's parameters
+            if (w != vncGetFramebufferWidth() || metrics.heightPixels != vncGetFramebufferHeight())
+                vncNewFramebuffer(w, metrics.heightPixels);
 
-                buffer.rewind();
+            buffer.rewind();
 
-                vncUpdateFramebuffer(buffer);
+            vncUpdateFramebuffer(buffer);
 
-                image.close();
+//            Executors.newWorkStealingPool().submit(() -> {
+            if (rawData == null) {
+                Bitmap bmp = Bitmap.createBitmap(image.getWidth(), image.getHeight(), Bitmap.Config.ARGB_8888);
+                int offset = 0;
+                for (int i = 0; i < image.getHeight(); ++i) {
+                    for (int j = 0; j < image.getWidth(); ++j) {
+                        int pixel = 0;
+                        pixel |= (buffer.get(offset) & 0xff) << 16;     // R
+                        pixel |= (buffer.get(offset + 1) & 0xff) << 8;  // G
+                        pixel |= (buffer.get(offset + 2) & 0xff);       // B
+                        pixel |= (buffer.get(offset + 3) & 0xff) << 24; // A
+                        bmp.setPixel(j, i, pixel);
+                        offset += pixelStride;
+                    }
+                    offset += rowPadding;
+                }
+                rawData = bmp;
             }
+            image.close();
+//            });
         }, null);
 
         mVirtualDisplay = mMediaProjection.createVirtualDisplay(getString(R.string.app_name),
@@ -413,12 +444,13 @@ public class MainService extends Service {
 
     /**
      * Get whether Media Projection was granted by the user.
+     *
      * @return -1 if unknown, 0 if denied, 1 if granted
      */
     public static int isMediaProjectionEnabled() {
-        if(instance == null)
+        if (instance == null)
             return -1;
-        if(instance.mResultCode == 0 || instance.mResultData == null)
+        if (instance.mResultCode == 0 || instance.mResultData == null)
             return 0;
 
         return 1;
@@ -431,8 +463,7 @@ public class MainService extends Service {
             instance.mHasPortraitInLandscapeWorkaroundApplied = !instance.mHasPortraitInLandscapeWorkaroundApplied;
             // apply
             instance.startScreenCapture();
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             //unused
         }
 
@@ -440,6 +471,7 @@ public class MainService extends Service {
 
     /**
      * Get non-loopback IPv4 addresses together with the port the user specified.
+     *
      * @return A list of strings in the form IP:port.
      */
     public static ArrayList<String> getIPv4sAndPorts() {
@@ -480,8 +512,7 @@ public class MainService extends Service {
     public static boolean connectReverse(String host, int port) {
         try {
             return instance.vncConnectReverse(host, port);
-        }
-        catch (NullPointerException e) {
+        } catch (NullPointerException e) {
             return false;
         }
     }
