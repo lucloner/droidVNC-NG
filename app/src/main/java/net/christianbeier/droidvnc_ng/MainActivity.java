@@ -40,6 +40,7 @@ import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -48,6 +49,9 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
+import net.vicp.biggee.kotlin.vnc.SnapShot;
+
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
 import io.reactivex.rxjava3.disposables.Disposable;
@@ -61,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
     private TextView mAddress;
     private boolean mIsMainServiceRunning;
     private Disposable mMainServiceStatusEventStreamConnection;
+    private ImageView imgShot;
 
 
     @Override
@@ -68,28 +73,26 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        imgShot = findViewById(R.id.img_shot);
+        SnapShot.INSTANCE.setImg(new WeakReference<>(imgShot));
+
         mButtonToggle = (Button) findViewById(R.id.toggle);
-        mButtonToggle.setOnClickListener(new View.OnClickListener() {
-            @SuppressLint("SetTextI18n")
-            @Override
-            public void onClick(View view) {
+        mButtonToggle.setOnClickListener(view -> {
 
-                Intent intent = new Intent(MainActivity.this, MainService.class);
-                if(mIsMainServiceRunning) {
-                    intent.setAction(MainService.ACTION_STOP);
-                }
-                else {
-                    intent.setAction(MainService.ACTION_START);
-                }
-                mButtonToggle.setEnabled(false);
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    startForegroundService(intent);
-                } else {
-                    startService(intent);
-                }
-
+            Intent intent = new Intent(MainActivity.this, MainService.class);
+            if (mIsMainServiceRunning) {
+                intent.setAction(MainService.ACTION_STOP);
+            } else {
+                intent.setAction(MainService.ACTION_START);
             }
+            mButtonToggle.setEnabled(false);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent);
+            } else {
+                startService(intent);
+            }
+
         });
 
         mAddress = findViewById(R.id.address);

@@ -50,6 +50,8 @@ import android.view.WindowManager;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 
+import net.vicp.biggee.kotlin.vnc.SnapShot;
+
 import java.net.InterfaceAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -89,6 +91,7 @@ public class MainService extends Service {
     private boolean mHasPortraitInLandscapeWorkaroundSet;
 
     private static MainService instance;
+    public static byte[] rawData;
 
     private static final Subject<StatusEvent> mStatusEventStream = BehaviorSubject.createDefault(StatusEvent.STOPPED).toSerialized();
     public enum StatusEvent {
@@ -102,7 +105,8 @@ public class MainService extends Service {
         System.loadLibrary("droidvnc-ng");
     }
 
-    private native boolean vncStartServer(int width, int height, int port, String desktopname, String password);
+    private native boolean vncStartServer(int width, int height, int port, String desktopname, String password, byte[] rawData);
+
     private native boolean vncStopServer();
     private native boolean vncConnectReverse(String host, int port);
     private native boolean vncNewFramebuffer(int width, int height);
@@ -174,12 +178,16 @@ public class MainService extends Service {
 
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
 
+        rawData = new byte[displayMetrics.widthPixels * displayMetrics.heightPixels];
         if (!vncStartServer(displayMetrics.widthPixels,
                 displayMetrics.heightPixels,
                 prefs.getInt(Constants.PREFS_KEY_SETTINGS_PORT, 5900),
                 Settings.Secure.getString(getContentResolver(), "bluetooth_name"),
-                prefs.getString(Constants.PREFS_KEY_SETTINGS_PASSWORD, "")))
+                prefs.getString(Constants.PREFS_KEY_SETTINGS_PASSWORD, ""), rawData)) {
             stopSelf();
+        } else {
+            SnapShot.INSTANCE.startDemo();
+        }
     }
 
 

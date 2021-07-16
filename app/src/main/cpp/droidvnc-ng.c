@@ -24,6 +24,9 @@
 #include <time.h>
 #include <errno.h>
 #include "rfb/rfb.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include "types.h"
 
 #define TAG "droidvnc-ng (native)"
 
@@ -153,22 +156,32 @@ JNIEXPORT jboolean JNICALL Java_net_christianbeier_droidvnc_1ng_MainService_vncS
 }
 
 
-JNIEXPORT jboolean JNICALL Java_net_christianbeier_droidvnc_1ng_MainService_vncStartServer(JNIEnv *env, jobject thiz, jint width, jint height, jint port, jstring desktopname, jstring password) {
+JNIEXPORT jboolean JNICALL
+Java_net_christianbeier_droidvnc_1ng_MainService_vncStartServer(JNIEnv *env, jobject thiz,
+                                                                jint width, jint height, jint port,
+                                                                jstring desktopname,
+                                                                jstring password,
+                                                                jbyteArray rawData) {
+
+    jboolean rawCopy = JNI_FALSE;
+    jbyte *const raw_buff = (*env)->GetByteArrayElements(env, rawData, &rawCopy);
 
     int argc = 0;
 
-    if(theScreen)
+    if (theScreen)
         return JNI_FALSE;
 
-    theScreen=rfbGetScreen(&argc, NULL, width, height, 8, 3, 4);
-    if(!theScreen) {
+    theScreen = rfbGetScreen(&argc, NULL, width, height, 8, 3, 4);
+    if (!theScreen) {
         __android_log_print(ANDROID_LOG_ERROR, TAG, "vncStartServer: failed allocating rfb screen");
         return JNI_FALSE;
     }
 
-    theScreen->frameBuffer=(char*)calloc(width * height * 4, 1);
-    if(!theScreen->frameBuffer) {
-        __android_log_print(ANDROID_LOG_ERROR, TAG, "vncStartServer: failed allocating framebuffer");
+//    theScreen->frameBuffer=(char*)calloc(width * height * 4, 1);
+    theScreen->frameBuffer = (char *) raw_buff;
+    if (!theScreen->frameBuffer) {
+        __android_log_print(ANDROID_LOG_ERROR, TAG,
+                            "vncStartServer: failed allocating framebuffer");
         Java_net_christianbeier_droidvnc_1ng_MainService_vncStopServer(env, thiz);
         return JNI_FALSE;
     }
@@ -260,6 +273,7 @@ JNIEXPORT jboolean JNICALL Java_net_christianbeier_droidvnc_1ng_MainService_vncN
 
     oldfb = theScreen->frameBuffer;
     newfb = calloc(width * height * 4, 1);
+
     if(!newfb) {
         __android_log_print(ANDROID_LOG_ERROR, TAG, "vncNewFramebuffer: failed allocating new framebuffer");
         return JNI_FALSE;
