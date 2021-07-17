@@ -26,18 +26,23 @@ import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
+import android.graphics.PixelFormat;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.provider.Settings;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
@@ -51,7 +56,10 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.core.app.NotificationCompat;
+
+import com.tapadoo.alerter.Alerter;
 
 import net.vicp.biggee.kotlin.AdbRemote;
 import net.vicp.biggee.kotlin.Root;
@@ -75,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
     private Disposable mMainServiceStatusEventStreamConnection;
     private ImageView imgShot;
     public static boolean root = false;
+    private TextView fText;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,8 +97,35 @@ public class MainActivity extends AppCompatActivity {
                 AdbRemote.INSTANCE.start();
             }
         } catch (Exception e) {
-
+            e.printStackTrace();
         }
+
+        if (!Settings.canDrawOverlays(this)) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION);
+            Toast.makeText(MainActivity.this, "需要取得权限以使用悬浮窗", Toast.LENGTH_SHORT).show();
+            startActivity(intent);
+        }
+
+        WindowManager.LayoutParams params = new WindowManager.LayoutParams();
+        WindowManager windowManager = (WindowManager) getApplication().getSystemService(Context.WINDOW_SERVICE);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {//6.0
+            params.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+        } else {
+            params.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
+        }
+        params.format = PixelFormat.RGBA_8888;
+        params.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        params.gravity = Gravity.END | Gravity.CENTER;
+        params.width = 300;
+        params.height = 100;
+
+        runOnUiThread(() -> {
+            LayoutInflater inflater = LayoutInflater.from(getApplication());
+            ConstraintLayout toucherLayout = (ConstraintLayout) inflater.inflate(R.layout.float_text, null);
+            windowManager.addView(toucherLayout, params);
+            fText = toucherLayout.findViewById(R.id.f_textView);
+        });
+
 
         imgShot = findViewById(R.id.img_shot);
         SnapShot.INSTANCE.setImg(new WeakReference<>(imgShot));
@@ -115,6 +151,18 @@ public class MainActivity extends AppCompatActivity {
                     .setAutoCancel(true)
                     .build();
             manager.notify(1, builder.build());
+
+            if (Settings.canDrawOverlays(this)) {
+                runOnUiThread(() -> {
+                    fText.setText("发现二维码:" + qrcode);
+                });
+                return;
+            }
+
+            Alerter.create(this)
+                    .setTitle("检测到QR")
+                    .setText(qrcode)
+                    .show();
         });
 
         mButtonToggle = findViewById(R.id.toggle);
